@@ -32,14 +32,16 @@ unsigned int __at _CONFIG1 __CONFIG1 = 0xFD4;
 unsigned int __at _CONFIG2 __CONFIG2 = 0x3AFF;
 
 /* Temperature lookup table  */
+/* This table is the temperature (multiplied by 10) for each possible value for the upper 5 bits of the value read from ADC. */
+/* The lower bits are used to interpolate between these points */
+/* These values are 'created' by back calculating the resistance of the NTC probe at each of these points and using the */
+/* probes resistance/temperature curve to get the actual temperature. */
 #ifdef FAHRENHEIT
 const int ad_lookup[] = { 0, -555, -319, -167, -49, 48, 134, 211, 282, 348, 412, 474, 534, 593, 652, 711, 770, 831, 893, 957, 1025, 1096, 1172, 1253, 1343, 1444, 1559, 1694, 1860, 2078, 2397, 2987 };
 #else  // CELSIUS
 const int ad_lookup[] = { 0, -486, -355, -270, -205, -151, -104, -61, -21, 16, 51, 85, 119, 152, 184, 217, 250, 284, 318, 354, 391, 431, 473, 519, 569, 624, 688, 763, 856, 977, 1154, 1482 };
 #endif
 
-/* LED character lookup table (0-15), includes hex */
-//unsigned const char led_lookup[] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41, 0x37, 0x1, 0x21, 0x5, 0xc1, 0xcd, 0x85, 0x9, 0x59 };
 /* LED character lookup table (0-9) */
 unsigned const char led_lookup[] = { LED_0, LED_1, LED_2, LED_3, LED_4, LED_5, LED_6, LED_7, LED_8, LED_9 };
 
@@ -133,20 +135,6 @@ void eeprom_write_config(unsigned char eeprom_address,unsigned int data)
 
 }
 
-#if 1
-static unsigned int divu10(unsigned int n) {
-	unsigned int q, r;
-	q = (n >> 1) + (n >> 2);
-	q = q + (q >> 4);
-	q = q + (q >> 8);
-	q = q >> 3;
-	r = n - ((q << 3) + (q << 1));
-	return q + ((r + 6) >> 4);
-}
-#else
-#define divu10(x)	((x)/10)
-#endif
-
 /* Update LED globals with temperature or integer data.
  * arguments: value (actual temperature multiplied by 10 or an integer)
  *            decimal indicates if the value is multiplied by 10 (i.e. a temperature)
@@ -175,7 +163,16 @@ void value_to_led(int value, unsigned char decimal) {
 
 	// If temperature >= 100 we must lose decimal...
 	if (value >= 1000) {
-		value = divu10((unsigned int) value);
+		// Efficient division by 10
+		{
+			unsigned int q, r, n=(unsigned int)value;
+			q = (n >> 1) + (n >> 2);
+			q = q + (q >> 4);
+			q = q + (q >> 8);
+			q = q >> 3;
+			r = n - ((q << 3) + (q << 1));
+			value = q + ((r + 6) >> 4);
+		}
 		decimal = 0;
 	}
 
@@ -417,6 +414,11 @@ static void interrupt_service_routine(void) __interrupt 0 {
 	}
 }
 
+#define AD_FILTER_SHIFT		(6)
+#if ((AD_FILTER_SHIFT > 6) || (AD_FILTER_SHIFT < 1))
+#error "AD_FILTER_SHIFT must be an integer >= 1 and <= 6"
+#endif
+  
 #define START_TCONV_1()		(ADCON0 = _CHS1 | _ADON)
 #define START_TCONV_2()		(ADCON0 = _CHS0 | _ADON)
 
@@ -424,14 +426,14 @@ static unsigned int read_ad(unsigned int adfilter){
 	ADGO = 1;
 	while(ADGO);
 	ADON = 0;
-	return ((adfilter - (adfilter >> 6)) + ((ADRESH << 8) | ADRESL));
+	return ((adfilter - (adfilter >> AD_FILTER_SHIFT)) + ((ADRESH << 8) | ADRESL));
 }
 
 static int ad_to_temp(unsigned int adfilter){
 	unsigned char i;
 	long temp = 32;
-	unsigned char a = ((adfilter >> 5) & 0x3f); // Lower 6 bits
-	unsigned char b = ((adfilter >> 11) & 0x1f); // Upper 5 bits
+	unsigned char a = ((adfilter >> (AD_FILTER_SHIFT - 1)) & 0x3f); // Lower 6 bits
+	unsigned char b = ((adfilter >> (AD_FILTER_SHIFT + 5)) & 0x1f); // Upper 5 bits
 
 	// Interpolate between lookup table points
 	for (i = 0; i < 64; i++) {
@@ -446,12 +448,15 @@ static int ad_to_temp(unsigned int adfilter){
 	return (temp >> 6);
 }
 
+#define check_ad_range(ad_value) (((unsigned char)((ad_value)>>(AD_FILTER_SHIFT + 2))) >= 248 || ((unsigned char)((ad_value)>>(AD_FILTER_SHIFT + 2))) <= 8)
+
 /*
  * Main entry point.
  */
 void main(void) __naked {
 	unsigned int millisx60=0;
-	unsigned int ad_filter=0x7fff, ad_filter2=0x7fff;
+	unsigned int ad_filter=(0x7fff >> (6 - AD_FILTER_SHIFT));
+	unsigned int ad_filter2=(0x7fff >> (6 - AD_FILTER_SHIFT));
 
 	init();
 
@@ -495,7 +500,7 @@ void main(void) __naked {
 				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc2));
 
 				// Alarm on sensor error (AD result out of range)
-				LATA0 = ((ad_filter>>8) >= 248 || (ad_filter>>8) <= 8) || (eeprom_read_config(EEADR_SET_MENU_ITEM(Pb)) && ((ad_filter2>>8) >= 248 || (ad_filter2>>8) <= 8));
+				LATA0 =  check_ad_range(ad_filter) || (eeprom_read_config(EEADR_SET_MENU_ITEM(Pb)) && check_ad_range(ad_filter2));
 
 				if(LATA0){ // On alarm, disable outputs
 					led_10.raw = LED_A;

@@ -27,22 +27,19 @@
 #define reset() { __asm RESET __endasm; }
 
 /* Helpful defines to handle buttons */
-#define BTN_PWR			0x88
-#define BTN_S			0x44
-#define BTN_UP			0x22
-#define BTN_DOWN		0x11
+#define BTN_PWR				(0x88)
+#define BTN_S				(0x44)
+#define BTN_UP				(0x22)
+#define BTN_DOWN			(0x11)
 
-#define BTN_IDLE(btn)				((_buttons & (btn)) == 0x00)
-#define BTN_PRESSED(btn)			((_buttons & (btn)) == ((btn) & 0x0f))
-#define BTN_HELD(btn)				((_buttons & (btn)) == (btn))
-#define BTN_RELEASED(btn)			((_buttons & (btn)) == ((btn) & 0xf0))
+#define BTN_IDLE(btn)			((_buttons & (btn)) == 0x00)
+#define BTN_PRESSED(btn)		((_buttons & (btn)) == ((btn) & 0x0f))
+#define BTN_HELD(btn)			((_buttons & (btn)) == (btn))
+#define BTN_RELEASED(btn)		((_buttons & (btn)) == ((btn) & 0xf0))
 #define BTN_HELD_OR_RELEASED(btn)	((_buttons & (btn) & 0xf0))
 
 /* Help to convert menu item number and config item number to an EEPROM config address */
-#define EEADR_MENU_ITEM(mi, ci)	((mi)*19 + (ci))
-
-extern unsigned int heating_delay;
-extern unsigned int cooling_delay;
+#define EEADR_MENU_ITEM(mi, ci)		(((mi)<<4) + ((mi)<<1) + (mi) + (ci))
 
 /* Set menu struct */
 struct s_setmenu {
@@ -54,7 +51,7 @@ struct s_setmenu {
 };
 
 /* Set menu struct data generator */
-#define TO_STRUCT(name, led10ch, led1ch, led01ch, minv, maxv, dvc, dvf) \
+#define TO_STRUCT(name, led10ch, led1ch, led01ch, minv, maxv, dv) \
     { led10ch, led1ch, led01ch, minv, maxv },
 
 static const struct s_setmenu setmenu[] = {
