@@ -348,6 +348,28 @@ static void init() {
 	// IMPORTANT FOR BUTTONS TO WORK!!! Disable analog input -> enables digital input
 	ANSELC = 0;
 
+
+	//Timer1 Registers Prescaler= 8 - TMR1 Preset = 3036 - Freq = 2.00 Hz - Period = 0.500000 seconds
+	// T1CON
+	TMR1CS1 = 0;
+	TMR1CS0 = 0;
+	T1CKPS1 = 1;   // bits 5-4  Prescaler Rate Select bits
+	T1CKPS0 = 1;   // bit 4
+	T1OSCEN = 1;   // bit 3 Timer1 Oscillator Enable Control bit 1 = on
+	NOT_T1SYNC = 1;    // bit 2 Timer1 External Clock Input Synchronization Control bit...1 = Do not synchronize external clock input
+//	TMR1CS = 0;    // bit 1 Timer1 Clock Source Select bit...0 = Internal clock (FOSC/4)
+	TMR1ON = 1;    // bit 0 enables timer
+//	TMR1H = 11;             // preset for timer1 MSB register
+//	TMR1L = 220;             // preset for timer1 LSB register
+
+//	TMR1IE = 1;	// Enable interrupts
+
+	// ECCP1 in special event trigger mode
+	// TODO Datasheet is ambigous, needs to be ECCP1 or CCP4?
+	CCPR1H = 0xF4;
+	CCPR1L = 0x24;
+	CCP1CON = 0xB;
+
 	// Postscaler 1:1, Enable counter, prescaler 1:4
 	T2CON = 0b00000101;
 	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:4-> 250kHz, 250 gives interrupt every 1 ms
@@ -412,6 +434,16 @@ static void interrupt_service_routine(void) __interrupt 0 {
 		// Clear interrupt flag
 		TMR2IF = 0;
 	}
+
+#if 0
+	if (TMR1IF) { // timer 1 interrupt flag
+		TMR1IF = 0;           // interrupt must be cleared by software
+		TMR1IE = 1;        // reenable the interrupt
+		TMR1H = 11;             // preset for timer1 MSB register
+		TMR1L = 220;             // preset for timer1 LSB register
+	}
+#endif
+
 }
 
 #define AD_FILTER_SHIFT		(6)
@@ -478,6 +510,14 @@ void main(void) __naked {
 
 			// Reset timer flag
 			TMR6IF = 0;
+		}
+
+
+		if(CCP1IF) {	// Special event flag
+			// TODO Do something here
+			led_e.e_c = !led_e.e_c;
+
+			CCP1IF = 0;
 		}
 
 		if(TMR4IF) {
