@@ -171,15 +171,15 @@ typedef union
 	unsigned char raw;
 
 	struct
-	  {
-	  unsigned                      : 1;
-	  unsigned e_point              : 1;
-	  unsigned e_c                  : 1;
-	  unsigned e_heat               : 1;
-	  unsigned e_negative           : 1;
-	  unsigned e_deg                : 1;
-	  unsigned e_set                : 1;
-	  unsigned e_cool               : 1;
+	{
+		unsigned		: 1;
+		unsigned e_point	: 1;
+		unsigned e_c		: 1;
+		unsigned e_heat		: 1;
+		unsigned e_negative	: 1;
+		unsigned e_deg		: 1;
+		unsigned e_set		: 1;
+		unsigned e_cool		: 1;
 	  };
 } led_e_t;
 
@@ -188,22 +188,40 @@ typedef union
 	unsigned char raw;
 
 	struct
-	  {
-	  unsigned decimal		: 1;
-	  unsigned middle		: 1;
-	  unsigned upper_left		: 1;
-	  unsigned lower_right          : 1;
-	  unsigned bottom		: 1;
-	  unsigned lower_left		: 1;
-	  unsigned upper_right		: 1;
-	  unsigned top			: 1;
-	  };
+	{
+		unsigned decimal	: 1;
+		unsigned middle		: 1;
+		unsigned upper_left	: 1;
+		unsigned lower_right	: 1;
+		unsigned bottom		: 1;
+		unsigned lower_left	: 1;
+		unsigned upper_right	: 1;
+		unsigned top		: 1;
+	 };
 } led_t;
 
-/* Declare functions and variables from Page 0 */
 extern led_e_t led_e;
 extern led_t led_10, led_1, led_01;
 extern unsigned const char led_lookup[];
+
+typedef union
+{
+	unsigned char raw;
+
+	struct
+	{
+		unsigned tmr1_toggle	: 1;
+		unsigned sensor_alarm	: 1;
+		unsigned setpoint_alarm	: 1;
+		unsigned menu_idle	: 1;
+		unsigned ad_toggle	: 1;
+		unsigned show_sensor2	: 1;
+		unsigned 		: 1;
+		unsigned 		: 1;
+	  };
+} flags_t;
+
+extern flags_t flags;
 extern unsigned int heating_delay;
 extern unsigned int cooling_delay;
 

@@ -48,6 +48,7 @@ unsigned const char led_lookup[] = { LED_0, LED_1, LED_2, LED_3, LED_4, LED_5, L
 /* Global variables to hold LED data (for multiplexing purposes) */
 led_e_t led_e = {0xff};
 led_t led_10, led_1, led_01;
+flags_t flags = {0x0};
 
 static int temperature=0;
 static int temperature2=0;
@@ -486,7 +487,7 @@ static int ad_to_temp(unsigned int adfilter){
  * Main entry point.
  */
 void main(void) __naked {
-	unsigned int millisx60=0;
+	unsigned int seconds=0;
 	unsigned int ad_filter=(0x7fff >> (6 - AD_FILTER_SHIFT));
 	unsigned int ad_filter2=(0x7fff >> (6 - AD_FILTER_SHIFT));
 
@@ -512,19 +513,11 @@ void main(void) __naked {
 			TMR6IF = 0;
 		}
 
-
-		if(CCP1IF) {	// Special event flag
-			// TODO Do something here
-			led_e.e_c = !led_e.e_c;
-
-			CCP1IF = 0;
-		}
-
 		if(TMR4IF) {
 
-			millisx60++;
+			flags.ad_toggle = !flags.ad_toggle;
 
-			if(millisx60 & 0x1){
+			if(flags.ad_toggle){
 				ad_filter = read_ad(ad_filter);
 				START_TCONV_2();
 			} else {
@@ -532,80 +525,97 @@ void main(void) __naked {
 				START_TCONV_1();
 			}
 
-			// Only run every 16th time called, that is 16x60ms = 960ms
-			// Close enough to 1s for our purposes.
-			if((millisx60 & 0xf) == 0) {
+			// Reset timer flag
+			TMR4IF = 0;
+		}
 
-				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc));
+		// Special event flag
+		if(CCP1IF) {
+
+			// 500ms flag
+			flags.tmr1_toggle != flags.tmr1_toggle;
+
+			if(flags.tmr1_toggle) {
+
+				// Read temperature 2
 				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc2));
 
 				// Alarm on sensor error (AD result out of range)
-				LATA0 =  check_ad_range(ad_filter) || (eeprom_read_config(EEADR_SET_MENU_ITEM(Pb)) && check_ad_range(ad_filter2));
+				flags.sensor_alarm = check_ad_range(ad_filter) || (eeprom_read_config(EEADR_SET_MENU_ITEM(Pb)) && check_ad_range(ad_filter2));
 
-				if(LATA0){ // On alarm, disable outputs
+				// Setpoint alarm
+				{
+					int sa = eeprom_read_config(EEADR_SET_MENU_ITEM(SA));
+					if(sa){
+						int diff = temperature - eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
+						if(diff < 0){
+							diff = -diff;
+						} 
+						if(sa < 0){
+							sa = -sa;
+							flags.setpoint_alarm = diff <= sa;
+						} else {
+							flags.setpoint_alarm = diff >= sa;
+						}
+					}
+				}
+
+				if(flags.setpoint_alarm){
+					led_10.raw = LED_S;
+					led_1.raw = LED_A;
+					led_01.raw = LED_OFF;
+				}					
+
+				// Update running profile every hour (if there is one)
+				if(((unsigned char)eeprom_read_config(EEADR_SET_MENU_ITEM(rn))) < THERMOSTAT_MODE){
+					// Indicate profile mode
+					led_e.e_set = 0;
+					// Update profile every hour
+					if(seconds++ >= 3600){
+						update_profile();
+						seconds = 0;
+					}
+				} else {
+					seconds = 0;
+				}
+
+			} else {
+				// Turn off 'set' LED
+				led_e.e_set = 1;
+
+				// Read temperature 1
+				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc));
+
+				// On alarm, disable outputs
+				if(flags.sensor_alarm){
 					led_10.raw = LED_A;
 					led_1.raw = LED_L;
 					led_e.raw = led_01.raw = LED_OFF;
 					LATA4 = 0;
 					LATA5 = 0;
-					cooling_delay = heating_delay = 60;
+					cooling_delay = 60;
+					heating_delay = 60;
 				} else {
-					// Update running profile every hour (if there is one)
-					// and handle reset of millis x60 counter
-					if(((unsigned char)eeprom_read_config(EEADR_SET_MENU_ITEM(rn))) < THERMOSTAT_MODE){
-						// Indicate profile mode
-						led_e.e_set = 0;
-						// Update profile every hour
-						if(millisx60 >= 60000){
-							update_profile();
-							millisx60 = 0;
-						}
-					} else {
-						led_e.e_set = 1;
-						millisx60 = 0;
-					}
-
-					{
-						int sa = eeprom_read_config(EEADR_SET_MENU_ITEM(SA));
-						if(sa){
-							int diff = temperature - eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
-							if(diff < 0){
-								diff = -diff;
-							} 
-							if(sa < 0){
-								sa = -sa;
-								LATA0 = diff <= sa;
-							} else {
-								LATA0 = diff >= sa;
-							}
-						}
-					}
-
 					// Run thermostat
 					temperature_control();
 
 					// Show temperature if menu is idle
-					if(TMR1GE){
-						if(LATA0 && RX9){
-							led_10.raw = LED_S;
-							led_1.raw = LED_A;
-							led_01.raw = LED_OFF;
+					if(flags.menu_idle){
+						led_e.e_point = !flags.show_sensor2;
+						if(flags.show_sensor2){
+							temperature_to_led(temperature2);
 						} else {
-							led_e.e_point = !TX9;
-							if(TX9){
-								temperature_to_led(temperature2);
-							} else {
-								temperature_to_led(temperature);
-							}
+							temperature_to_led(temperature);
 						}
-						RX9 = !RX9;
 					}
 				}
+			}
 
-			} // End 1 sec section
+			// Set alarm output
+			LATA0 = flags.sensor_alarm || flags.setpoint_alarm;
 
-			// Reset timer flag
-			TMR4IF = 0;
+			// Reset special event flag
+			CCP1IF = 0;
 		}
 
 		// Reset watchdog

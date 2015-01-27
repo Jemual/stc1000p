@@ -90,7 +90,7 @@ static void prx_to_led(unsigned char run_mode, unsigned char is_menu){
 	led_e.e_deg = 1;
 	led_e.e_c = 1;
 	led_e.e_point = 1;
-	if(run_mode<6){
+	if(run_mode<NO_OF_PROFILES){
 		led_10.raw = LED_P;
 		led_1.raw = LED_r;
 		led_01.raw = led_lookup[run_mode];
@@ -108,7 +108,7 @@ static void prx_to_led(unsigned char run_mode, unsigned char is_menu){
 }
 
 #define run_mode_to_led(x)	prx_to_led(x,0)
-#define menu_to_led(x)	prx_to_led(x,1)
+#define menu_to_led(x)		prx_to_led(x,1)
 
 /* States for the menu FSM */
 enum menu_states {
@@ -216,18 +216,16 @@ void button_menu_fsm(){
 				LATA0 = 0;
 				LATA4 = 0;
 				LATA5 = 0;
-				TMR4ON = 0;
-				TMR4IF = 0;
+				TMR1ON = 0;
+				TMR1IF = 0;
 			} else {
 				heating_delay=60;
 				cooling_delay=60;
-				TMR4ON = 1;
+				TMR1ON = 1;
 			}
 			state = state_idle;
 		} else if(!BTN_HELD(BTN_PWR)){
-//			if((unsigned char)eeprom_read_config(EEADR_2ND_PROBE)){
-					TX9 = !TX9;
-//			}
+			flags.show_sensor2 = !flags.show_sensor2;
 			state = state_idle;
 		}
 		break;
@@ -440,9 +438,6 @@ chk_cfg_acc_label:
 		state=state_idle;
 	}
 
-	/* This is last resort...
-	 * Start using unused registers for general purpose
-	 * Use TMR1GE to flag if display should show temperature or not */
-	TMR1GE = (state==0);
+	flags.menu_idle = (state==state_idle);
 
 }
