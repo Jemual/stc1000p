@@ -57,34 +57,34 @@
 
 /* Define STC-1000+ version number (XYY, X=major, YY=minor) */
 /* Also, keep track of last version that has changes in EEPROM layout */
-#define STC1000P_VERSION	(107)
-#define STC1000P_EEPROM_VERSION	(11)
+#define STC1000P_VERSION		(107)
+#define STC1000P_EEPROM_VERSION		(11)
 
 /* Define limits and defaults for temperatures */
 #ifdef FAHRENHEIT
-#define TEMP_MIN		(-400)
-#define TEMP_MAX		(2500)
-#define TEMP_DEF		(680)
-#define TEMP_CORR_MIN		(-100)
-#define TEMP_CORR_MAX		(100)
-#define TEMP_HYST_1_MAX		(100)
-#define TEMP_HYST_1_DEF		(10)
-#define TEMP_HYST_2_MAX		(500)
-#define TEMP_HYST_2_DEF		(100)
-#define SP_ALARM_MIN		(-800)
-#define SP_ALARM_MAX		(800)
+#define TEMP_MIN			(-400)
+#define TEMP_MAX			(2500)
+#define TEMP_DEF			(680)
+#define TEMP_CORR_MIN			(-100)
+#define TEMP_CORR_MAX			(100)
+#define TEMP_HYST_1_MAX			(100)
+#define TEMP_HYST_1_DEF			(10)
+#define TEMP_HYST_2_MAX			(500)
+#define TEMP_HYST_2_DEF			(100)
+#define SP_ALARM_MIN			(-800)
+#define SP_ALARM_MAX			(800)
 #else  // CELSIUS
-#define TEMP_MIN		(-400)
-#define TEMP_MAX		(1400)
-#define TEMP_DEF		(200)
-#define TEMP_CORR_MIN		(-50)
-#define TEMP_CORR_MAX		(50)
-#define TEMP_HYST_1_MAX		(50)
-#define TEMP_HYST_1_DEF		(5)
-#define TEMP_HYST_2_MAX		(250)
-#define TEMP_HYST_2_DEF		(50)
-#define SP_ALARM_MIN		(-400)
-#define SP_ALARM_MAX		(400)
+#define TEMP_MIN			(-400)
+#define TEMP_MAX			(1400)
+#define TEMP_DEF			(200)
+#define TEMP_CORR_MIN			(-50)
+#define TEMP_CORR_MAX			(50)
+#define TEMP_HYST_1_MAX			(50)
+#define TEMP_HYST_1_DEF			(5)
+#define TEMP_HYST_2_MAX			(250)
+#define TEMP_HYST_2_DEF			(50)
+#define SP_ALARM_MIN			(-400)
+#define SP_ALARM_MAX			(400)
 #endif
 
 /* The data needed for the 'Set' menu

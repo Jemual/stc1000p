@@ -33,44 +33,44 @@
 /* Define STC-1000+ version number (XYY, X=major, YY=minor) and EEROM revision */
 #define STC1000P_MAGIC_F		0x192C
 #define STC1000P_MAGIC_C		0x26D3
-#define STC1000P_VERSION	(107)
-#define STC1000P_EEPROM_VERSION	10
+#define STC1000P_VERSION		(107)
+#define STC1000P_EEPROM_VERSION		(11)
 
 /* Pin configuration */
-#define ICSPCLK 9
-#define ICSPDAT 8 
-#define VDD1    6
-#define VDD2    5
-#define VDD3    4
-#define nMCLR   3 
+#define ICSPCLK				9
+#define ICSPDAT				8 
+#define VDD1				6
+#define VDD2				5
+#define VDD3				4
+#define nMCLR				3 
 
 /* Delays */
-#define TDLY()  delayMicroseconds(1)    /* 1.0us minimum */
-#define TCKH()  delayMicroseconds(1)    /* 100ns minimum */
-#define TCKL()  delayMicroseconds(1)    /* 100ns minimum */
-#define TERAB() delay(5)    		    /* 5ms maximum */
-#define TERAR() delay(3)    		    /* 2.5ms maximum */
-#define TPINT() delay(5)    		    /* 5ms maximum */
-#define TPEXT() delay(2)                /* 1.0ms minimum, 2.1ms maximum*/
-#define TDIS()  delayMicroseconds(1)    /* 300ns minimum */
-#define TENTS() delayMicroseconds(1)    /* 100ns minimum */
-#define TENTH() delay(3)  		        /* 250us minimum */ /* Needs a lot more when powered by arduino */
-#define TEXIT() delayMicroseconds(1)    /* 1us minimum */
+#define TDLY()  delayMicroseconds(1)	/* 1.0us minimum */
+#define TCKH()  delayMicroseconds(1)	/* 100ns minimum */
+#define TCKL()  delayMicroseconds(1)	/* 100ns minimum */
+#define TERAB() delay(5)		/* 5ms maximum */
+#define TERAR() delay(3)		/* 2.5ms maximum */
+#define TPINT() delay(5)		/* 5ms maximum */
+#define TPEXT() delay(2)		/* 1.0ms minimum, 2.1ms maximum*/
+#define TDIS()  delayMicroseconds(1)	/* 300ns minimum */
+#define TENTS() delayMicroseconds(1)	/* 100ns minimum */
+#define TENTH() delay(3)		/* 250us minimum */ /* Needs a lot more when powered by arduino */
+#define TEXIT() delayMicroseconds(1)	/* 1us minimum */
 
 /* Commands */
-#define LOAD_CONFIGURATION                  0x00    /* 0, data(14), 0 */
-#define LOAD_DATA_FOR_PROGRAM_MEMORY        0x02    /* 0, data(14), 0 */
-#define LOAD_DATA_FOR_DATA_MEMORY           0x03    /* 0, data(14), zero(6), 0 */
-#define READ_DATA_FROM_PROGRAM_MEMORY       0x04    /* 0, data(14), 0 */
-#define READ_DATA_FROM_DATA_MEMORY          0x05    /* 0, data(14), zero(6), 0 */
-#define INCREMENT_ADDRESS                   0x06    /* - */
-#define RESET_ADDRESS                       0x16    /* - */
-#define BEGIN_INTERNALLY_TIMED_PROGRAMMING  0x08    /* - */
-#define BEGIN_EXTERNALLY_TIMED_PROGRAMMING  0x18    /* - */
-#define END_EXTERNALLY_TIMED_PROGRAMMING    0x0A    /* - */
-#define BULK_ERASE_PROGRAM_MEMORY           0x09    /* Internally Timed */
-#define BULK_ERASE_DATA_MEMORY              0x0B    /* Internally Timed */
-#define ROW_ERASE_PROGRAM_MEMORY            0x11    /* Internally Timed */
+#define LOAD_CONFIGURATION			0x00	/* 0, data(14), 0 */
+#define LOAD_DATA_FOR_PROGRAM_MEMORY		0x02	/* 0, data(14), 0 */
+#define LOAD_DATA_FOR_DATA_MEMORY		0x03	/* 0, data(14), zero(6), 0 */
+#define READ_DATA_FROM_PROGRAM_MEMORY		0x04	/* 0, data(14), 0 */
+#define READ_DATA_FROM_DATA_MEMORY		0x05	/* 0, data(14), zero(6), 0 */
+#define INCREMENT_ADDRESS			0x06	/* - */
+#define RESET_ADDRESS				0x16	/* - */
+#define BEGIN_INTERNALLY_TIMED_PROGRAMMING	0x08	/* - */
+#define BEGIN_EXTERNALLY_TIMED_PROGRAMMING	0x18	/* - */
+#define END_EXTERNALLY_TIMED_PROGRAMMING	0x0A	/* - */
+#define BULK_ERASE_PROGRAM_MEMORY		0x09	/* Internally Timed */
+#define BULK_ERASE_DATA_MEMORY			0x0B	/* Internally Timed */
+#define ROW_ERASE_PROGRAM_MEMORY		0x11	/* Internally Timed */
 
 /* declare hex data */
 extern const char hex_celsius[] PROGMEM;
@@ -110,7 +110,7 @@ void setup() {
 			Serial.println("STC-1000 detected");
 			lvp_entry();
 			bulk_erase_device();
-#ifdef AUTOMATIC_UPLOAD_FAHRENHEIT
+#if AUTOMATIC_UPLOAD_FAHRENHEIT
 			upload_hex_from_progmem(hex_fahrenheit);
 			upload_hex_from_progmem(hex_eeprom_fahrenheit);
 			write_magic(STC1000P_MAGIC_F);
