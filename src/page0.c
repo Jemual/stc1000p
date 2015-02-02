@@ -350,12 +350,14 @@ static void init() {
 	ANSELC = 0;
 
 
-	//Timer1 Registers Prescaler= 8 - TMR1 Preset = 3036 - Freq = 2.00 Hz - Period = 0.500000 seconds
+	//Timer1 Registers Prescaler= 1 - TMR1 Preset = 3036 - Freq = 16.00 Hz - Period = 0.062500 seconds
 	// T1CON
 	TMR1CS1 = 0;
 	TMR1CS0 = 0;
-	T1CKPS1 = 1;   // bits 5-4  Prescaler Rate Select bits
-	T1CKPS0 = 1;   // bit 4
+//	T1CKPS1 = 1;   // bits 5-4  Prescaler Rate Select bits
+//	T1CKPS0 = 1;   // bit 4
+	T1CKPS1 = 0;   // bits 5-4  Prescaler Rate Select bits
+	T1CKPS0 = 0;   // bit 4
 	T1OSCEN = 1;   // bit 3 Timer1 Oscillator Enable Control bit 1 = on
 	NOT_T1SYNC = 1;    // bit 2 Timer1 External Clock Input Synchronization Control bit...1 = Do not synchronize external clock input
 //	TMR1CS = 0;    // bit 1 Timer1 Clock Source Select bit...0 = Internal clock (FOSC/4)
@@ -378,11 +380,13 @@ static void init() {
 	// Enable Timer2 interrupt
 	TMR2IE = 1;
 
+#if 0
 	// Postscaler 1:15, - , prescaler 1:16
 	T4CON = 0b01110010;
 	TMR4ON = eeprom_read_config(EEADR_POWER_ON);
 	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:16-> 62.5kHz, 250 and postscale 1:15 -> 16.66666 Hz or 60ms
 	PR4 = 250;
+#endif
 
 	// Postscaler 1:7, Enable counter, prescaler 1:64
 	T6CON = 0b00110111;
@@ -455,10 +459,11 @@ static void interrupt_service_routine(void) __interrupt 0 {
 #define START_TCONV_1()		(ADCON0 = _CHS1 | _ADON)
 #define START_TCONV_2()		(ADCON0 = _CHS0 | _ADON)
 
+
 static unsigned int read_ad(unsigned int adfilter){
-	ADGO = 1;
+//	ADGO = 1;
 	while(ADGO);
-	ADON = 0;
+//	ADON = 0;
 	return ((adfilter - (adfilter >> AD_FILTER_SHIFT)) + ((ADRESH << 8) | ADRESL));
 }
 
@@ -487,7 +492,7 @@ static int ad_to_temp(unsigned int adfilter){
  * Main entry point.
  */
 void main(void) __naked {
-	unsigned int seconds=0;
+	unsigned int cnt16Hz=0;
 	unsigned int ad_filter=(0x7fff >> (6 - AD_FILTER_SHIFT));
 	unsigned int ad_filter2=(0x7fff >> (6 - AD_FILTER_SHIFT));
 
@@ -503,7 +508,7 @@ void main(void) __naked {
 			// Handle button press and menu
 			button_menu_fsm();
 
-			if(!TMR4ON){
+			if(!TMR1ON){
 				led_e.raw = LED_OFF;
 				led_10.raw = LED_O;
 				led_1.raw = led_01.raw = LED_F;
@@ -513,6 +518,7 @@ void main(void) __naked {
 			TMR6IF = 0;
 		}
 
+#if 0
 		if(TMR4IF) {
 
 			flags.ad_toggle = !flags.ad_toggle;
@@ -528,79 +534,88 @@ void main(void) __naked {
 			// Reset timer flag
 			TMR4IF = 0;
 		}
+#endif
 
 		// Special event flag
 		if(CCP1IF) {
 
-			// 500ms flag
-			flags.tmr1_toggle != flags.tmr1_toggle;
-
-			if(flags.tmr1_toggle) {
-
-				// Read temperature 2
-				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc2));
-
-				// Alarm on sensor error (AD result out of range)
-				flags.sensor_alarm = check_ad_range(ad_filter) || (eeprom_read_config(EEADR_SET_MENU_ITEM(Pb)) && check_ad_range(ad_filter2));
-
-				// Setpoint alarm
-				{
-					int sa = eeprom_read_config(EEADR_SET_MENU_ITEM(SA));
-					if(sa){
-						int diff = temperature - eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
-						if(diff < 0){
-							diff = -diff;
-						} 
-						if(sa < 0){
-							sa = -sa;
-							flags.setpoint_alarm = diff <= sa;
-						} else {
-							flags.setpoint_alarm = diff >= sa;
+			switch(cnt16Hz & 0xf){
+				case 0:
+					// Update running profile every hour (if there is one)
+					if(((unsigned char)eeprom_read_config(EEADR_SET_MENU_ITEM(rn))) < THERMOSTAT_MODE){
+						// Indicate profile mode
+						led_e.e_set = 0;
+						// Update profile every hour (16Hz * 60 secs * 60 minutes)
+						if(cnt16Hz >= 57600){
+							update_profile();
+							cnt16Hz = 0;
+						}
+					} else {
+						cnt16Hz = 0;
+					}
+				break;
+				case 1:
+					// Read temperature 1
+					temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc));
+				break;
+				case 2:
+					// Read temperature 2
+					temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc2));
+				break;
+				case 3:
+					// Alarm on sensor error (AD result out of range)
+					flags.sensor_alarm = check_ad_range(ad_filter) || (eeprom_read_config(EEADR_SET_MENU_ITEM(Pb)) && check_ad_range(ad_filter2));
+				break;
+				case 4:
+					// Setpoint alarm
+					{
+						int sa = eeprom_read_config(EEADR_SET_MENU_ITEM(SA));
+						if(sa){
+							int diff = temperature - eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
+							if(diff < 0){
+								diff = -diff;
+							} 
+							if(sa < 0){
+								sa = -sa;
+								flags.setpoint_alarm = diff <= sa;
+							} else {
+								flags.setpoint_alarm = diff >= sa;
+							}
 						}
 					}
-				}
-
-				if(flags.setpoint_alarm){
-					led_10.raw = LED_S;
-					led_1.raw = LED_A;
-					led_01.raw = LED_OFF;
-				}					
-
-				// Update running profile every hour (if there is one)
-				if(((unsigned char)eeprom_read_config(EEADR_SET_MENU_ITEM(rn))) < THERMOSTAT_MODE){
-					// Indicate profile mode
-					led_e.e_set = 0;
-					// Update profile every hour
-					if(seconds++ >= 3600){
-						update_profile();
-						seconds = 0;
+				break;
+				case 5:
+					if(flags.setpoint_alarm){
+						led_10.raw = LED_S;
+						led_1.raw = LED_A;
+						led_01.raw = LED_OFF;
+					}					
+				break;
+				case 6:
+					if(!flags.sensor_alarm){
+						// Run thermostat
+						temperature_control();
 					}
-				} else {
-					seconds = 0;
-				}
-
-			} else {
-				// Turn off 'set' LED
-				led_e.e_set = 1;
-
-				// Read temperature 1
-				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc));
-
-				// On alarm, disable outputs
-				if(flags.sensor_alarm){
-					led_10.raw = LED_A;
-					led_1.raw = LED_L;
-					led_e.raw = led_01.raw = LED_OFF;
-					LATA4 = 0;
-					LATA5 = 0;
-					cooling_delay = 60;
-					heating_delay = 60;
-				} else {
-					// Run thermostat
-					temperature_control();
-
+				break;
+				case 7:
+					// Turn off 'set' LED (
+					led_e.e_set = 1;
+				break;
+				case 8:
+					// On alarm, disable outputs
+					if(flags.sensor_alarm){
+						led_10.raw = LED_A;
+						led_1.raw = LED_L;
+						led_e.raw = led_01.raw = LED_OFF;
+						LATA4 = 0;
+						LATA5 = 0;
+						cooling_delay = 60;
+						heating_delay = 60;
+					}
+				break;
+				case 9:
 					// Show temperature if menu is idle
-					if(flags.menu_idle){
+					if(!flags.sensor_alarm && flags.menu_idle){
 						led_e.e_point = !flags.show_sensor2;
 						if(flags.show_sensor2){
 							temperature_to_led(temperature2);
@@ -608,11 +623,40 @@ void main(void) __naked {
 							temperature_to_led(temperature);
 						}
 					}
-				}
+				break;
+#if 0
+				case 10:
+				break;
+				case 11:
+				break;
+				case 12:
+				break;
+				case 13:
+				break;
+				case 14:
+				break;
+				case 15:
+				break;
+#else
+				default:
+				break;
+#endif
 			}
+	
+			// Increment 16Hz counter
+			cnt16Hz++;
 
 			// Set alarm output
 			LATA0 = flags.sensor_alarm || flags.setpoint_alarm;
+
+			// Read ADC
+			if(cnt16Hz & 1){
+				ad_filter = read_ad(ad_filter);
+				START_TCONV_2();
+			} else {
+				ad_filter2 = read_ad(ad_filter2);
+				START_TCONV_1();
+			}
 
 			// Reset special event flag
 			CCP1IF = 0;

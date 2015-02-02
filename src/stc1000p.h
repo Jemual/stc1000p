@@ -210,7 +210,7 @@ typedef union
 
 	struct
 	{
-		unsigned tmr1_toggle	: 1;
+		unsigned 		: 1;
 		unsigned sensor_alarm	: 1;
 		unsigned setpoint_alarm	: 1;
 		unsigned menu_idle	: 1;
