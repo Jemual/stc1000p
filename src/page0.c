@@ -463,7 +463,7 @@ static void interrupt_service_routine(void) __interrupt 0 {
 static unsigned int read_ad(unsigned int adfilter){
 //	ADGO = 1;
 	while(ADGO);
-//	ADON = 0;
+	ADON = 0;
 	return ((adfilter - (adfilter >> AD_FILTER_SHIFT)) + ((ADRESH << 8) | ADRESL));
 }
 
@@ -539,83 +539,76 @@ void main(void) __naked {
 		// Special event flag
 		if(CCP1IF) {
 
-			switch(cnt16Hz & 0xf){
-				case 0:
-					// Update running profile every hour (if there is one)
-					if(((unsigned char)eeprom_read_config(EEADR_SET_MENU_ITEM(rn))) < THERMOSTAT_MODE){
-						// Indicate profile mode
-						led_e.e_set = 0;
-						// Update profile every hour (16Hz * 60 secs * 60 minutes)
-						if(cnt16Hz >= 57600){
-							update_profile();
-							cnt16Hz = 0;
-						}
-					} else {
+			if((((unsigned char)cnt16Hz) & 0xf) == 0){
+				// Read temperature 1
+				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc));
+
+				// Update running profile every hour (if there is one)
+				if(((unsigned char)eeprom_read_config(EEADR_SET_MENU_ITEM(rn))) < THERMOSTAT_MODE){
+					// Indicate profile mode
+					led_e.e_set = 0;
+					// Update profile every hour (16Hz * 60 secs * 60 minutes)
+					if(cnt16Hz >= 57600){
+						update_profile();
 						cnt16Hz = 0;
 					}
-				break;
-				case 1:
-					// Read temperature 1
-					temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc));
-				break;
-				case 2:
-					// Read temperature 2
-					temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc2));
-				break;
-				case 3:
-					// Alarm on sensor error (AD result out of range)
-					flags.sensor_alarm = check_ad_range(ad_filter) || (eeprom_read_config(EEADR_SET_MENU_ITEM(Pb)) && check_ad_range(ad_filter2));
-				break;
-				case 4:
-					// Setpoint alarm
-					{
-						int sa = eeprom_read_config(EEADR_SET_MENU_ITEM(SA));
-						if(sa){
-							int diff = temperature - eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
-							if(diff < 0){
-								diff = -diff;
-							} 
-							if(sa < 0){
-								sa = -sa;
-								flags.setpoint_alarm = diff <= sa;
-							} else {
-								flags.setpoint_alarm = diff >= sa;
-							}
+				} else {
+					cnt16Hz = 0;
+				}
+
+				// Flash 'SA' on setpoint alarm
+				if(flags.setpoint_alarm && flags.menu_idle){
+					led_10.raw = LED_S;
+					led_1.raw = LED_A;
+					led_01.raw = LED_OFF;
+				}
+
+				// On sensor alarm, disable outputs
+				if(flags.sensor_alarm){
+					LATA4 = 0;
+					LATA5 = 0;
+					cooling_delay = 60;
+					heating_delay = 60;
+				} else {
+					// Run thermostat
+					temperature_control();
+				}
+			}
+
+			if((((unsigned char)cnt16Hz) & 0xf) == 7){
+				// Turn off 'set' LED (flash if profile is running)
+				led_e.e_set = 1;
+
+				// Read temperature 2
+				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc2));
+
+				// Alarm on sensor error (AD result out of range)
+				flags.sensor_alarm = check_ad_range(ad_filter) || (eeprom_read_config(EEADR_SET_MENU_ITEM(Pb)) && check_ad_range(ad_filter2));
+
+				// Setpoint alarm
+				{
+					int sa = eeprom_read_config(EEADR_SET_MENU_ITEM(SA));
+					if(sa){
+						int diff = temperature - eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
+						if(diff < 0){
+							diff = -diff;
+						} 
+						if(sa < 0){
+							sa = -sa;
+							flags.setpoint_alarm = diff <= sa;
+						} else {
+							flags.setpoint_alarm = diff >= sa;
 						}
 					}
-				break;
-				case 5:
-					if(flags.setpoint_alarm){
-						led_10.raw = LED_S;
-						led_1.raw = LED_A;
-						led_01.raw = LED_OFF;
-					}					
-				break;
-				case 6:
-					if(!flags.sensor_alarm){
-						// Run thermostat
-						temperature_control();
-					}
-				break;
-				case 7:
-					// Turn off 'set' LED (
-					led_e.e_set = 1;
-				break;
-				case 8:
-					// On alarm, disable outputs
+				}
+
+				// Show temperature if menu is idle
+				if(flags.menu_idle){
 					if(flags.sensor_alarm){
 						led_10.raw = LED_A;
 						led_1.raw = LED_L;
 						led_e.raw = led_01.raw = LED_OFF;
-						LATA4 = 0;
-						LATA5 = 0;
-						cooling_delay = 60;
-						heating_delay = 60;
-					}
-				break;
-				case 9:
-					// Show temperature if menu is idle
-					if(!flags.sensor_alarm && flags.menu_idle){
+					} else {
 						led_e.e_point = !flags.show_sensor2;
 						if(flags.show_sensor2){
 							temperature_to_led(temperature2);
@@ -623,34 +616,18 @@ void main(void) __naked {
 							temperature_to_led(temperature);
 						}
 					}
-				break;
-#if 0
-				case 10:
-				break;
-				case 11:
-				break;
-				case 12:
-				break;
-				case 13:
-				break;
-				case 14:
-				break;
-				case 15:
-				break;
-#else
-				default:
-				break;
-#endif
+				}
+
+				// Set alarm output
+				LATA0 = flags.sensor_alarm || flags.setpoint_alarm;
 			}
+
 	
 			// Increment 16Hz counter
 			cnt16Hz++;
 
-			// Set alarm output
-			LATA0 = flags.sensor_alarm || flags.setpoint_alarm;
-
 			// Read ADC
-			if(cnt16Hz & 1){
+			if(((unsigned char)cnt16Hz) & 1){
 				ad_filter = read_ad(ad_filter);
 				START_TCONV_2();
 			} else {
