@@ -369,9 +369,9 @@ static void init() {
 
 	// ECCP1 in special event trigger mode
 	// TODO Datasheet is ambigous, needs to be ECCP1 or CCP4?
-	CCPR1H = 0xF4;
-	CCPR1L = 0x24;
-	CCP1CON = 0xB;
+	CCPR4H = 0xF4;
+	CCPR4L = 0x24;
+	CCP4CON = 0xB;
 
 	// Postscaler 1:1, Enable counter, prescaler 1:4
 	T2CON = 0b00000101;
@@ -537,7 +537,7 @@ void main(void) __naked {
 #endif
 
 		// Special event flag
-		if(CCP1IF) {
+		if(CCP4IF) {
 
 			if((((unsigned char)cnt16Hz) & 0xf) == 0){
 				// Read temperature 1
@@ -636,7 +636,7 @@ void main(void) __naked {
 			}
 
 			// Reset special event flag
-			CCP1IF = 0;
+			CCP4IF = 0;
 		}
 
 		// Reset watchdog
