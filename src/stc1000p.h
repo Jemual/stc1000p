@@ -57,8 +57,8 @@
 
 /* Define STC-1000+ version number (XYY, X=major, YY=minor) */
 /* Also, keep track of last version that has changes in EEPROM layout */
-#define STC1000P_VERSION		(107)
-#define STC1000P_EEPROM_VERSION		(11)
+#define STC1000P_VERSION		(108)
+#define STC1000P_EEPROM_VERSION		(12)
 
 /* Define limits and defaults for temperatures */
 #ifdef FAHRENHEIT
@@ -117,12 +117,13 @@ enum set_menu_enum {
     SET_MENU_DATA(ENUM_VALUES)
 };
 
-#define NO_OF_PROFILES				6
+#define NO_OF_PROFILES				5
 #define SET_MENU_ITEM_NO			NO_OF_PROFILES
 #define THERMOSTAT_MODE				NO_OF_PROFILES
+#define OFF_MODE				NO_OF_PROFILES+1
 
 /* Defines for EEPROM config addresses */
-#define EEADR_PROFILE_SETPOINT(profile, step)	(((profile)<<4) + ((profile)<<1) + (profile) + ((step)<<1))
+#define EEADR_PROFILE_SETPOINT(profile, step)	(((profile)<<4) + ((profile)<<2) + ((step)<<1))
 #define EEADR_PROFILE_DURATION(profile, step)	EEADR_PROFILE_SETPOINT(profile, step) + 1
 #define EEADR_SET_MENU				EEADR_PROFILE_SETPOINT(NO_OF_PROFILES, 0)
 #define EEADR_SET_MENU_ITEM(name)		(EEADR_SET_MENU + (name))

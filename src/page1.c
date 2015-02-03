@@ -70,10 +70,14 @@ static int RANGE(int x, int min, int max){
 /* Check and constrain a configuration value */
 static int check_config_value(int config_value, unsigned char eeadr){
 	if(eeadr < EEADR_SET_MENU){
-		while(eeadr >= 19){
-			eeadr-=19;
+		while(eeadr >= 20) {
+			eeadr -= 20;
 		}
-		if(eeadr & 0x1){
+		if(eeadr == 19) {
+			config_value = RANGE(config_value, 0, OFF_MODE);
+		} else if(eeadr == 1) {
+			config_value = RANGE(config_value, 1, 999);
+		} else if(eeadr & 0x1) {
 			config_value = RANGE(config_value, 0, 999);
 		} else {
 			config_value = RANGE(config_value, TEMP_MIN, TEMP_MAX);
@@ -100,9 +104,15 @@ static void prx_to_led(unsigned char run_mode, unsigned char is_menu){
 			led_1.raw = LED_e;
 			led_01.raw = LED_t;
 		} else {
-			led_10.raw = LED_t;
-			led_1.raw = LED_h;
-			led_01.raw = LED_OFF;
+			if(run_mode == THERMOSTAT_MODE) {
+				led_10.raw = LED_t;
+				led_1.raw = LED_h;
+				led_01.raw = LED_OFF;
+			} else {
+				led_10.raw = LED_O;
+				led_1.raw = LED_F;
+				led_01.raw = LED_F;
+			}
 		}
 	}
 }
@@ -301,7 +311,10 @@ void button_menu_fsm(){
 		led_e.e_deg = 1;
 		led_e.e_c = 1;
 		if(menu_item < SET_MENU_ITEM_NO){
-			if(config_item & 0x1) {
+			if(config_item == 19) {
+				led_10.raw = LED_n;
+				led_1.raw = LED_r;
+			} else if(config_item & 0x1) {
 				led_10.raw = LED_d;
 				led_1.raw = LED_h;
 			} else {
@@ -309,7 +322,7 @@ void button_menu_fsm(){
 				led_1.raw = LED_P;
 			}
 			led_01.raw = led_lookup[(config_item >> 1)];
-		} else /* if(menu_item == 6) */{
+		} else /* if(menu_item == SET_MENU_ITEM_NO) */{
 			led_10.raw = setmenu[config_item].led_c_10;
 			led_1.raw = setmenu[config_item].led_c_1;
 			led_01.raw = setmenu[config_item].led_c_01;
@@ -325,7 +338,7 @@ void button_menu_fsm(){
 		} else if(BTN_RELEASED(BTN_UP)){
 			config_item++;
 			if(menu_item < SET_MENU_ITEM_NO){
-				if(config_item >= 19){
+				if(config_item >= 20){
 					config_item = 0;
 				}
 			} else {
@@ -340,8 +353,8 @@ void button_menu_fsm(){
 		} else if(BTN_RELEASED(BTN_DOWN)){
 			config_item--;
 			if(menu_item < SET_MENU_ITEM_NO){
-				if(config_item > 18){
-					config_item = 18;
+				if(config_item > 19){
+					config_item = 19;
 				}
 			} else {
 				if(config_item > SET_MENU_SIZE-1){
@@ -367,7 +380,9 @@ chk_skip_menu_item:
 		break;
 	case state_show_config_value:
 		if(menu_item < SET_MENU_ITEM_NO){
-			if(config_item & 0x1){
+			if(config_item == 19){
+				run_mode_to_led(config_value);
+			} else if(config_item & 0x1){
 				int_to_led(config_value);
 			} else {
 				temperature_to_led(config_value);
@@ -420,10 +435,6 @@ chk_cfg_acc_label:
 							unsigned char eeadr_sp = EEADR_PROFILE_SETPOINT(((unsigned char)config_value), 0);
 							// Set intial value for SP
 							eeprom_write_config(EEADR_SET_MENU_ITEM(SP), eeprom_read_config(eeadr_sp));
-							// Hack in case inital step duration is '0'
-							if(eeprom_read_config(eeadr_sp+1) == 0){
-								config_value = THERMOSTAT_MODE;
-							}
 						}
 					}
 				}

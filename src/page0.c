@@ -225,14 +225,32 @@ static void update_profile(){
 
 		// Reached end of step?
 		if (curr_dur >= profile_step_dur) {
-			// Update setpoint with value from next step
-			eeprom_write_config(EEADR_SET_MENU_ITEM(SP), profile_next_step_sp);
 			// Is this the last step (next step is number 9 or next step duration is 0)?
 			if (curr_step == 8 || eeprom_read_config(profile_step_eeaddr + 3) == 0) {
-				// Switch to thermostat mode.
-				eeprom_write_config(EEADR_SET_MENU_ITEM(rn), THERMOSTAT_MODE);
+				profile_no = eeprom_read_config(EEADR_PROFILE_DURATION(profile_no, 9));
+				if(profile_no < THERMOSTAT_MODE){
+					eeprom_write_config(EEADR_SET_MENU_ITEM(SP), eeprom_read_config(EEADR_PROFILE_SETPOINT(profile_no, 0)));
+					eeprom_write_config(EEADR_SET_MENU_ITEM(St), 0);
+					eeprom_write_config(EEADR_SET_MENU_ITEM(dh), 0);
+					eeprom_write_config(EEADR_SET_MENU_ITEM(rn), profile_no);
+				} else{
+					eeprom_write_config(EEADR_SET_MENU_ITEM(SP), profile_next_step_sp);
+					eeprom_write_config(EEADR_SET_MENU_ITEM(rn), THERMOSTAT_MODE);
+					if(profile_no > THERMOSTAT_MODE){
+						eeprom_write_config(EEADR_POWER_ON, 0);
+						LATA0 = 0;
+						LATA4 = 0;
+						LATA5 = 0;
+						TMR1ON = 0;
+						TMR1IF = 0;
+					}
+				}
 				return; // Fastest way out...
 			}
+
+			// Update setpoint with value from next step
+			eeprom_write_config(EEADR_SET_MENU_ITEM(SP), profile_next_step_sp);
+
 			// Reset duration
 			curr_dur = 0;
 			// Update step
