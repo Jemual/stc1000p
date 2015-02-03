@@ -566,7 +566,8 @@ void main(void) __naked {
 					// Indicate profile mode
 					led_e.e_set = 0;
 					// Update profile every hour (16Hz * 60 secs * 60 minutes)
-					if(cnt16Hz >= 57600){
+//					if(cnt16Hz >= 57600){
+					if(cnt16Hz >= 160){
 						update_profile();
 						cnt16Hz = 0;
 					}

@@ -39,7 +39,7 @@
 #define BTN_HELD_OR_RELEASED(btn)	((_buttons & (btn) & 0xf0))
 
 /* Help to convert menu item number and config item number to an EEPROM config address */
-#define EEADR_MENU_ITEM(mi, ci)		(((mi)<<4) + ((mi)<<1) + (mi) + (ci))
+#define EEADR_MENU_ITEM(mi, ci)		(((mi)<<4) + ((mi)<<2) + (ci))
 
 /* Set menu struct */
 struct s_setmenu {
@@ -311,9 +311,11 @@ void button_menu_fsm(){
 		led_e.e_deg = 1;
 		led_e.e_c = 1;
 		if(menu_item < SET_MENU_ITEM_NO){
+			led_01.raw = led_lookup[(config_item >> 1)];
 			if(config_item == 19) {
 				led_10.raw = LED_n;
 				led_1.raw = LED_r;
+				led_01.raw = LED_OFF;
 			} else if(config_item & 0x1) {
 				led_10.raw = LED_d;
 				led_1.raw = LED_h;
@@ -321,7 +323,6 @@ void button_menu_fsm(){
 				led_10.raw = LED_S;
 				led_1.raw = LED_P;
 			}
-			led_01.raw = led_lookup[(config_item >> 1)];
 		} else /* if(menu_item == SET_MENU_ITEM_NO) */{
 			led_10.raw = setmenu[config_item].led_c_10;
 			led_1.raw = setmenu[config_item].led_c_1;

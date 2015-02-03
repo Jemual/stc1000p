@@ -87,6 +87,8 @@
 #define SP_ALARM_MAX			(400)
 #endif
 
+#define NO_OF_PROFILES				5
+
 /* The data needed for the 'Set' menu
  * Using x macros to generate the data structures needed, all menu configuration can be kept in this
  * single place.
@@ -107,7 +109,7 @@
     _(hd,	LED_h,	LED_d,	LED_OFF,	0,		60,			2)			\
     _(rP,	LED_r,	LED_P,	LED_OFF,	0,		1,			0)			\
     _(Pb,	LED_P,	LED_b,	LED_2,		0,		1,			0)			\
-    _(rn,	LED_r,	LED_n,	LED_OFF,	0,		6,			6)			\
+    _(rn,	LED_r,	LED_n,	LED_OFF,	0,		NO_OF_PROFILES,		NO_OF_PROFILES)		\
 
 #define ENUM_VALUES(name, led10ch, led1ch, led01ch, minv, maxv, dv) \
     name,
@@ -117,7 +119,6 @@ enum set_menu_enum {
     SET_MENU_DATA(ENUM_VALUES)
 };
 
-#define NO_OF_PROFILES				5
 #define SET_MENU_ITEM_NO			NO_OF_PROFILES
 #define THERMOSTAT_MODE				NO_OF_PROFILES
 #define OFF_MODE				NO_OF_PROFILES+1
