@@ -370,20 +370,17 @@ static void init() {
 
 	//Timer1 Registers Prescaler= 1 - TMR1 Preset = 3036 - Freq = 16.00 Hz - Period = 0.062500 seconds
 	// T1CON
-	TMR1CS1 = 0;
-	TMR1CS0 = 0;
-//	T1CKPS1 = 1;   // bits 5-4  Prescaler Rate Select bits
-//	T1CKPS0 = 1;   // bit 4
-	T1CKPS1 = 0;   // bits 5-4  Prescaler Rate Select bits
-	T1CKPS0 = 0;   // bit 4
-	T1OSCEN = 1;   // bit 3 Timer1 Oscillator Enable Control bit 1 = on
-	NOT_T1SYNC = 1;    // bit 2 Timer1 External Clock Input Synchronization Control bit...1 = Do not synchronize external clock input
-//	TMR1CS = 0;    // bit 1 Timer1 Clock Source Select bit...0 = Internal clock (FOSC/4)
-	TMR1ON = 1;    // bit 0 enables timer
-//	TMR1H = 11;             // preset for timer1 MSB register
-//	TMR1L = 220;             // preset for timer1 LSB register
-
-//	TMR1IE = 1;	// Enable interrupts
+	T1CON = 0b00001101;
+//	TMR1CS1 = 0;	// bits 6-7 Timer1 Clock Source Select 00 = Internal clock (FOSC/4)
+//	TMR1CS0 = 0;
+//	T1CKPS1 = 0;	// bits 5-4  Prescaler Rate Select bits
+//	T1CKPS0 = 0;
+//	T1OSCEN = 1;	// bit 3 Timer1 Oscillator Enable Control bit 1 = on
+//	NOT_T1SYNC = 1;	// bit 2 Timer1 External Clock Input Synchronization Control bit...1 = Do not synchronize external clock input
+			// bit 1 undefined
+//	TMR1ON = 1;	// bit 0 enables timer
+//	TMR1H = 11;	// preset for timer1 MSB register
+//	TMR1L = 220;	// preset for timer1 LSB register
 
 	// ECCP1 in special event trigger mode
 	// TODO Datasheet is ambigous, needs to be ECCP1 or CCP4?
@@ -397,14 +394,6 @@ static void init() {
 	PR2 = 250;
 	// Enable Timer2 interrupt
 	TMR2IE = 1;
-
-#if 0
-	// Postscaler 1:15, - , prescaler 1:16
-	T4CON = 0b01110010;
-	TMR4ON = eeprom_read_config(EEADR_POWER_ON);
-	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:16-> 62.5kHz, 250 and postscale 1:15 -> 16.66666 Hz or 60ms
-	PR4 = 250;
-#endif
 
 	// Postscaler 1:7, Enable counter, prescaler 1:64
 	T6CON = 0b00110111;
@@ -457,15 +446,6 @@ static void interrupt_service_routine(void) __interrupt 0 {
 		// Clear interrupt flag
 		TMR2IF = 0;
 	}
-
-#if 0
-	if (TMR1IF) { // timer 1 interrupt flag
-		TMR1IF = 0;           // interrupt must be cleared by software
-		TMR1IE = 1;        // reenable the interrupt
-		TMR1H = 11;             // preset for timer1 MSB register
-		TMR1L = 220;             // preset for timer1 LSB register
-	}
-#endif
 
 }
 
@@ -536,24 +516,6 @@ void main(void) __naked {
 			TMR6IF = 0;
 		}
 
-#if 0
-		if(TMR4IF) {
-
-			flags.ad_toggle = !flags.ad_toggle;
-
-			if(flags.ad_toggle){
-				ad_filter = read_ad(ad_filter);
-				START_TCONV_2();
-			} else {
-				ad_filter2 = read_ad(ad_filter2);
-				START_TCONV_1();
-			}
-
-			// Reset timer flag
-			TMR4IF = 0;
-		}
-#endif
-
 		// Special event flag
 		if(CCP4IF) {
 
@@ -566,8 +528,7 @@ void main(void) __naked {
 					// Indicate profile mode
 					led_e.e_set = 0;
 					// Update profile every hour (16Hz * 60 secs * 60 minutes)
-//					if(cnt16Hz >= 57600){
-					if(cnt16Hz >= 160){
+					if(cnt16Hz >= 57600){
 						update_profile();
 						cnt16Hz = 0;
 					}
