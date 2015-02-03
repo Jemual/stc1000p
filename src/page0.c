@@ -368,22 +368,12 @@ static void init() {
 	ANSELC = 0;
 
 
-	//Timer1 Registers Prescaler= 1 - TMR1 Preset = 3036 - Freq = 16.00 Hz - Period = 0.062500 seconds
-	// T1CON
+	// Timer1 (FOSC/4, no prescale, no sync, enable timer)
 	T1CON = 0b00001101;
-//	TMR1CS1 = 0;	// bits 6-7 Timer1 Clock Source Select 00 = Internal clock (FOSC/4)
-//	TMR1CS0 = 0;
-//	T1CKPS1 = 0;	// bits 5-4  Prescaler Rate Select bits
-//	T1CKPS0 = 0;
-//	T1OSCEN = 1;	// bit 3 Timer1 Oscillator Enable Control bit 1 = on
-//	NOT_T1SYNC = 1;	// bit 2 Timer1 External Clock Input Synchronization Control bit...1 = Do not synchronize external clock input
-			// bit 1 undefined
-//	TMR1ON = 1;	// bit 0 enables timer
-//	TMR1H = 11;	// preset for timer1 MSB register
-//	TMR1L = 220;	// preset for timer1 LSB register
 
-	// ECCP1 in special event trigger mode
-	// TODO Datasheet is ambigous, needs to be ECCP1 or CCP4?
+	// CCP4 in special event trigger mode
+	// Reset timer 1 and trigger ADC at (2^16-3036) => 16Hz
+	// (ECCP1 can also be used, if no automatic triggering of ADC is desired)
 	CCPR4H = 0xF4;
 	CCPR4L = 0x24;
 	CCP4CON = 0xB;
