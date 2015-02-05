@@ -39,7 +39,7 @@
 #define BTN_HELD_OR_RELEASED(btn)	((_buttons & (btn) & 0xf0))
 
 /* Help to convert menu item number and config item number to an EEPROM config address */
-#define EEADR_MENU_ITEM(mi, ci)		(((mi)<<4) + ((mi)<<2) + (ci))
+#define EEADR_MENU_ITEM(mi, ci)		(((mi)<<4) + (ci))
 
 /* Set menu struct */
 struct s_setmenu {
@@ -70,10 +70,8 @@ static int RANGE(int x, int min, int max){
 /* Check and constrain a configuration value */
 static int check_config_value(int config_value, unsigned char eeadr){
 	if(eeadr < EEADR_SET_MENU){
-		while(eeadr >= 20) {
-			eeadr -= 20;
-		}
-		if(eeadr == 19) {
+		eeadr &= 0xf;
+		if(eeadr == 15) {
 			config_value = RANGE(config_value, 0, OFF_MODE);
 		} else if(eeadr == 1) {
 			config_value = RANGE(config_value, 1, 999);
@@ -290,16 +288,10 @@ void button_menu_fsm(){
 		if(countdown==0 || BTN_RELEASED(BTN_PWR)){
 			state=state_idle;
 		} else if(BTN_RELEASED(BTN_UP)){
-			menu_item++;
-			if(menu_item > SET_MENU_ITEM_NO){
-				menu_item = 0;
-			}
+			menu_item = (menu_item + 1) & 0x3;
 			state = state_show_menu_item;
 		} else if(BTN_RELEASED(BTN_DOWN)){
-			menu_item--;
-			if(menu_item > SET_MENU_ITEM_NO){
-				menu_item = SET_MENU_ITEM_NO;
-			}
+			menu_item = (menu_item - 1) & 0x3;
 			state = state_show_menu_item;
 		} else if(BTN_RELEASED(BTN_S)){
 			config_item = 0;
@@ -312,7 +304,7 @@ void button_menu_fsm(){
 		led_e.e_c = 1;
 		if(menu_item < SET_MENU_ITEM_NO){
 			led_01.raw = led_lookup[(config_item >> 1)];
-			if(config_item == 19) {
+			if(config_item == 15) {
 				led_10.raw = LED_n;
 				led_1.raw = LED_r;
 				led_01.raw = LED_OFF;
@@ -337,12 +329,8 @@ void button_menu_fsm(){
 		} else if(BTN_RELEASED(BTN_PWR)){
 			state = state_show_menu_item;
 		} else if(BTN_RELEASED(BTN_UP)){
-			config_item++;
-			if(menu_item < SET_MENU_ITEM_NO){
-				if(config_item >= 20){
-					config_item = 0;
-				}
-			} else {
+			config_item = (config_item + 1) & 0xf;
+			if(menu_item >= SET_MENU_ITEM_NO){
 				if(config_item >= SET_MENU_SIZE){
 					config_item = 0;
 				}
@@ -352,12 +340,8 @@ void button_menu_fsm(){
 			}
 			state = state_show_config_item;
 		} else if(BTN_RELEASED(BTN_DOWN)){
-			config_item--;
-			if(menu_item < SET_MENU_ITEM_NO){
-				if(config_item > 19){
-					config_item = 19;
-				}
-			} else {
+			config_item = (config_item - 1) & 0xf;
+			if(menu_item >= SET_MENU_ITEM_NO){
 				if(config_item > SET_MENU_SIZE-1){
 					config_item = SET_MENU_SIZE-1;
 				}
@@ -381,7 +365,7 @@ chk_skip_menu_item:
 		break;
 	case state_show_config_value:
 		if(menu_item < SET_MENU_ITEM_NO){
-			if(config_item == 19){
+			if(config_item == 15){
 				run_mode_to_led(config_value);
 			} else if(config_item & 0x1){
 				int_to_led(config_value);

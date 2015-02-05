@@ -87,7 +87,7 @@
 #define SP_ALARM_MAX			(400)
 #endif
 
-#define NO_OF_PROFILES				5
+#define NO_OF_PROFILES			7
 
 /* The data needed for the 'Set' menu
  * Using x macros to generate the data structures needed, all menu configuration can be kept in this
@@ -107,7 +107,6 @@
     _(dh,	LED_d,	LED_h,	LED_OFF,	0,		999,			0)			\
     _(cd,	LED_c,	LED_d,	LED_OFF,	0,		60,			5)			\
     _(hd,	LED_h,	LED_d,	LED_OFF,	0,		60,			2)			\
-    _(rP,	LED_r,	LED_P,	LED_OFF,	0,		1,			0)			\
     _(Pb,	LED_P,	LED_b,	LED_2,		0,		1,			0)			\
     _(rn,	LED_r,	LED_n,	LED_OFF,	0,		NO_OF_PROFILES,		NO_OF_PROFILES)		\
 
@@ -124,7 +123,7 @@ enum set_menu_enum {
 #define OFF_MODE				NO_OF_PROFILES+1
 
 /* Defines for EEPROM config addresses */
-#define EEADR_PROFILE_SETPOINT(profile, step)	(((profile)<<4) + ((profile)<<2) + ((step)<<1))
+#define EEADR_PROFILE_SETPOINT(profile, step)	(((profile)<<4) + ((step)<<1))
 #define EEADR_PROFILE_DURATION(profile, step)	EEADR_PROFILE_SETPOINT(profile, step) + 1
 #define EEADR_SET_MENU				EEADR_PROFILE_SETPOINT(NO_OF_PROFILES, 0)
 #define EEADR_SET_MENU_ITEM(name)		(EEADR_SET_MENU + (name))

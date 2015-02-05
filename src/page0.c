@@ -210,31 +210,41 @@ static void update_profile(){
 	if (profile_no < THERMOSTAT_MODE) {
 		unsigned char curr_step = eeprom_read_config(EEADR_SET_MENU_ITEM(St));
 		unsigned int curr_dur = eeprom_read_config(EEADR_SET_MENU_ITEM(dh)) + 1;
+		int profile_step_sp;
+
 		unsigned char profile_step_eeaddr;
-		unsigned int profile_step_dur;
+		int profile_step_dur;
 		int profile_next_step_sp;
 
 		// Sanity check
-		if(curr_step > 8){
-			curr_step = 8;
+		if(curr_step > 6){
+			curr_step = 6;
 		}
 
+		profile_step_sp = eeprom_read_config(profile_step_eeaddr);
 		profile_step_eeaddr = EEADR_PROFILE_SETPOINT(profile_no, curr_step);
 		profile_step_dur = eeprom_read_config(profile_step_eeaddr + 1);
-		profile_next_step_sp = eeprom_read_config(profile_step_eeaddr + 2);
+
+		if(profile_step_dur < 0){
+			profile_next_step_sp = eeprom_read_config(profile_step_eeaddr + 2);
+			profile_step_dur = -profile_step_dur;
+		} else {
+			profile_next_step_sp = profile_step_sp;
+		}
 
 		// Reached end of step?
 		if (curr_dur >= profile_step_dur) {
-			// Is this the last step (next step is number 9 or next step duration is 0)?
-			if (curr_step == 8 || eeprom_read_config(profile_step_eeaddr + 3) == 0) {
-				profile_no = eeprom_read_config(EEADR_PROFILE_DURATION(profile_no, 9));
+			// Is this the last step (next step is number 7 or next step duration is 0)?
+			if (curr_step == 6 || eeprom_read_config(profile_step_eeaddr + 3) == 0) {
+				// Check next run mode
+				profile_no = eeprom_read_config(EEADR_PROFILE_DURATION(profile_no, 7));
 				if(profile_no < THERMOSTAT_MODE){
 					eeprom_write_config(EEADR_SET_MENU_ITEM(SP), eeprom_read_config(EEADR_PROFILE_SETPOINT(profile_no, 0)));
 					eeprom_write_config(EEADR_SET_MENU_ITEM(St), 0);
 					eeprom_write_config(EEADR_SET_MENU_ITEM(dh), 0);
 					eeprom_write_config(EEADR_SET_MENU_ITEM(rn), profile_no);
 				} else{
-					eeprom_write_config(EEADR_SET_MENU_ITEM(SP), profile_next_step_sp);
+					eeprom_write_config(EEADR_SET_MENU_ITEM(SP), eeprom_read_config(profile_step_eeaddr + 2));
 					eeprom_write_config(EEADR_SET_MENU_ITEM(rn), THERMOSTAT_MODE);
 					if(profile_no > THERMOSTAT_MODE){
 						eeprom_write_config(EEADR_POWER_ON, 0);
@@ -249,15 +259,14 @@ static void update_profile(){
 			}
 
 			// Update setpoint with value from next step
-			eeprom_write_config(EEADR_SET_MENU_ITEM(SP), profile_next_step_sp);
+			eeprom_write_config(EEADR_SET_MENU_ITEM(SP), eeprom_read_config(profile_step_eeaddr + 2));
 
 			// Reset duration
 			curr_dur = 0;
 			// Update step
 			curr_step++;
 			eeprom_write_config(EEADR_SET_MENU_ITEM(St), curr_step);
-		} else if(eeprom_read_config(EEADR_SET_MENU_ITEM(rP))) { // Is ramping enabled?
-			int profile_step_sp = eeprom_read_config(profile_step_eeaddr);
+		} else {
 			unsigned int t = curr_dur << 6;
 			long sp = 32;
 			unsigned char i;
