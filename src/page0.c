@@ -242,7 +242,7 @@ static void update_profile(){
 						LATA4 = 0;
 						LATA5 = 0;
 						TMR1ON = 0;
-						TMR1IF = 0;
+						CCP4IF = 0;
 					}
 				}
 				return; // Fastest way out...
@@ -367,9 +367,8 @@ static void init() {
 	// IMPORTANT FOR BUTTONS TO WORK!!! Disable analog input -> enables digital input
 	ANSELC = 0;
 
-
 	// Timer1 (FOSC/4, no prescale, no sync, enable timer)
-	T1CON = 0b00001101;
+	T1CON = 0b00000101;
 
 	// CCP4 in special event trigger mode
 	// Reset timer 1 and trigger ADC at (2^16-3036) => 16Hz
