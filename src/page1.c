@@ -225,7 +225,7 @@ void button_menu_fsm(){
 				LATA4 = 0;
 				LATA5 = 0;
 				TMR1ON = 0;
-				TMR1IF = 0;
+				CCP4IF = 0;
 			} else {
 				heating_delay=60;
 				cooling_delay=60;
