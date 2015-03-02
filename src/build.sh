@@ -56,6 +56,15 @@ for l in `cat build/eedata_fahrenheit.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,
 done; 
 echo "};" >> picprog.tmp
 
+# Create picprog.js
+cat picprog.tmp | sed -n '/^const char hex_eeprom_celsius\[\] PROGMEM/q;p' | sed "s/'/\\\\\\\'/g" > picprog.js.tmp
+echo "var sketch='' +" > ../profile/picprog.js
+while IFS= read r; do
+	echo "'$r\n' +"; 
+done < picprog.js.tmp >> ../profile/picprog.js
+echo "'';" >> ../profile/picprog.js
+rm -f picprog.js.tmp
+
 # Rename old sketch and replace with new
 mv -f ../picprog.ino picprog.bkp
 mv picprog.tmp ../picprog.ino
